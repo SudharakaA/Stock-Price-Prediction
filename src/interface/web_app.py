@@ -73,8 +73,10 @@ def load_stock_data(symbol, period="1y"):
 def initialize_agent():
     """Initialize the LangChain agent."""
     if not os.getenv('OPENAI_API_KEY'):
-        st.error("❌ Please set your OPENAI_API_KEY in the .env file")
-        st.stop()
+        st.warning("⚠️ No OPENAI_API_KEY found. AI chat features will be disabled.")
+        st.info("💡 To enable AI features, create a .env file with your OpenAI API key.")
+        st.session_state.agent = None
+        return
     
     if st.session_state.agent is None:
         with st.spinner("🔧 Initializing AI agent..."):
@@ -83,7 +85,8 @@ def initialize_agent():
                 st.success("✅ AI agent ready!")
             except Exception as e:
                 st.error(f"❌ Error initializing agent: {e}")
-                st.stop()
+                st.warning("🔄 Continuing with basic features (charts and metrics only)")
+                st.session_state.agent = None
 
 
 def plot_stock_chart(df, symbol):
@@ -222,64 +225,89 @@ def main():
             fig = plot_stock_chart(df_with_indicators, symbol)
             st.plotly_chart(fig, use_container_width=True)
             
-            # AI Analysis
-            st.markdown("## 🤖 AI Analysis")
-            
-            with st.spinner("🧠 AI is analyzing the stock..."):
-                if analysis_type == "Comprehensive Analysis":
-                    response = st.session_state.agent.comprehensive_analysis(symbol)
-                elif analysis_type == "Technical Analysis Only":
-                    response = st.session_state.agent.chat(f"Provide detailed technical analysis for {symbol}")
-                elif analysis_type == "ML Predictions":
-                    response = st.session_state.agent.ml_forecast_analysis(symbol)
-                else:  # Quick Overview
-                    response = st.session_state.agent.chat(f"Give me a quick overview of {symbol} stock")
-            
-            st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
-            st.markdown(response)
-            st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Chat interface
-    st.markdown("## 💬 Chat with AI Analyst")
-    
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
-    
-    # Chat input
-    user_question = st.text_input(
-        "Ask me anything about stocks:",
-        placeholder="e.g., 'Compare AAPL and MSFT' or 'What's the market outlook?'"
-    )
-    
-    if st.button("Send") and user_question:
-        # Add user message to history
-        st.session_state.chat_history.append(("user", user_question))
-        
-        # Get AI response
-        with st.spinner("🤖 Thinking..."):
-            response = st.session_state.agent.chat(user_question)
-        
-        # Add AI response to history
-        st.session_state.chat_history.append(("assistant", response))
-    
-    # Display chat history
-    if st.session_state.chat_history:
-        st.markdown("### 💭 Chat History")
-        for role, message in st.session_state.chat_history[-6:]:  # Show last 6 messages
-            if role == "user":
-                st.markdown(f"**You:** {message}")
+            # AI Analysis (only if agent is available)
+            if st.session_state.agent is not None:
+                st.markdown("## 🤖 AI Analysis")
+                
+                with st.spinner("🧠 AI is analyzing the stock..."):
+                    try:
+                        if analysis_type == "Comprehensive Analysis":
+                            response = st.session_state.agent.comprehensive_analysis(symbol)
+                        elif analysis_type == "Technical Analysis Only":
+                            response = st.session_state.agent.chat(f"Provide detailed technical analysis for {symbol}")
+                        elif analysis_type == "ML Predictions":
+                            response = st.session_state.agent.ml_forecast_analysis(symbol)
+                        else:  # Quick Overview
+                            response = st.session_state.agent.chat(f"Give me a quick overview of {symbol} stock")
+                        
+                        st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
+                        st.markdown(response)
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"❌ AI analysis failed: {e}")
+                        st.info("📊 Chart and metrics are still available above!")
             else:
-                st.markdown(f"**AI Analyst:** {message}")
-                st.markdown("---")
+                st.markdown("## 🤖 AI Analysis")
+                st.info("💡 AI analysis is not available. Please configure your OPENAI_API_KEY to enable this feature.")
+                st.markdown("**To enable AI features:**")
+                st.markdown("1. Create a `.env` file in the project root")
+                st.markdown("2. Add your OpenAI API key: `OPENAI_API_KEY=your_key_here`")
+                st.markdown("3. Restart the web application")
     
-    # Market overview sidebar
-    st.sidebar.markdown("## 🌍 Market Overview")
-    if st.sidebar.button("📊 Get Market Overview"):
-        with st.spinner("📈 Analyzing market conditions..."):
-            market_response = st.session_state.agent.market_regime_analysis()
+    # Chat interface (only if agent is available)
+    if st.session_state.agent is not None:
+        st.markdown("## 💬 Chat with AI Analyst")
         
-        st.sidebar.markdown("### Current Market")
-        st.sidebar.info(market_response[:500] + "..." if len(market_response) > 500 else market_response)
+        if 'chat_history' not in st.session_state:
+            st.session_state.chat_history = []
+        
+        # Chat input
+        user_question = st.text_input(
+            "Ask me anything about stocks:",
+            placeholder="e.g., 'Compare AAPL and MSFT' or 'What's the market outlook?'"
+        )
+        
+        if st.button("Send") and user_question:
+            # Add user message to history
+            st.session_state.chat_history.append(("user", user_question))
+            
+            # Get AI response
+            with st.spinner("🤖 Thinking..."):
+                try:
+                    response = st.session_state.agent.chat(user_question)
+                    # Add AI response to history
+                    st.session_state.chat_history.append(("assistant", response))
+                except Exception as e:
+                    st.error(f"❌ Chat failed: {e}")
+                    response = f"Sorry, I encountered an error: {e}"
+                    st.session_state.chat_history.append(("assistant", response))
+        
+        # Display chat history
+        if st.session_state.chat_history:
+            st.markdown("### 💭 Chat History")
+            for role, message in st.session_state.chat_history[-6:]:  # Show last 6 messages
+                if role == "user":
+                    st.markdown(f"**You:** {message}")
+                else:
+                    st.markdown(f"**AI Analyst:** {message}")
+                    st.markdown("---")
+    else:
+        st.markdown("## 💬 Chat with AI Analyst")
+        st.info("💡 AI chat is not available. Please configure your OPENAI_API_KEY to enable this feature.")
+    
+    # Market overview sidebar (only if agent is available)
+    st.sidebar.markdown("## 🌍 Market Overview")
+    if st.session_state.agent is not None:
+        if st.sidebar.button("📊 Get Market Overview"):
+            with st.spinner("📈 Analyzing market conditions..."):
+                try:
+                    market_response = st.session_state.agent.market_regime_analysis()
+                    st.sidebar.markdown("### Current Market")
+                    st.sidebar.info(market_response[:500] + "..." if len(market_response) > 500 else market_response)
+                except Exception as e:
+                    st.sidebar.error(f"❌ Market analysis failed: {e}")
+    else:
+        st.sidebar.info("💡 Market overview requires AI features. Please configure your OPENAI_API_KEY.")
     
     # Footer
     st.markdown("---")
