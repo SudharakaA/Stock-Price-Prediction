@@ -11,6 +11,7 @@ A powerful, AI-driven stock analysis tool that combines real-time data, technica
 - 🎯 **Smart Fallbacks** - AI reasoning when APIs are rate-limited
 - 💬 **Natural Language** - Ask questions in plain English
 - 🌐 **Multiple Interfaces** - CLI, web app, and interactive modes
+- 🚀 **Easy Launch** - Simple web interface with `python run_web_app.py`
 
 ## 🚀 Quick Start
 
@@ -40,9 +41,36 @@ python groq_demo.py
 # LangChain version (advanced)
 python langchain_tools_demo.py
 
-# Web interface
+# Web interface (NEW!)
+python run_web_app.py
+
+# Or directly with Streamlit
 python -m streamlit run src/interface/web_app.py
 ```
+
+## 🌐 Web Interface
+
+The tool includes a powerful **Streamlit-based web interface** for interactive stock analysis!
+
+### ✨ Web Features
+- **📊 Interactive Charts** - Real-time candlestick charts with technical indicators
+- **🤖 AI Chat** - Natural language queries about stocks
+- **📈 Technical Analysis** - RSI, MACD, Bollinger Bands visualization
+- **💬 Market Insights** - AI-powered market analysis
+- **⚡ Real-Time Data** - Live stock prices and metrics
+
+### 🚀 Quick Web Launch
+```bash
+# Easy way (recommended)
+python run_web_app.py
+
+# Direct Streamlit
+streamlit run src/interface/web_app.py
+```
+
+**📝 Note:** The web interface works with or without API keys - basic charts and data are always available!
+
+For detailed web interface documentation, see [`docs/WEB_INTERFACE.md`](docs/WEB_INTERFACE.md).
 
 ## 💡 Usage Examples
 
